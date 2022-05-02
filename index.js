@@ -36,7 +36,15 @@ async function run() {
             res.send(perfume);
         });
 
-        // create items
+        // create items & load Item
+        app.get('/perfume', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const cursor = perfumesCollection.find(query);
+            const perfumes = await cursor.toArray();
+            res.send(perfumes);
+        })
+
         app.post('/perfume', async (req, res) => {
             const newPerfume = req.body;
             const result = await perfumesCollection.insertOne(newPerfume);
