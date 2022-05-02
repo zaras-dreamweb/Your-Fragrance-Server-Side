@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const { send } = require('express/lib/response');
+const { send, get } = require('express/lib/response');
 const app = express();
 require('dotenv').config();
 
@@ -35,6 +35,13 @@ async function run() {
             const perfume = await perfumesCollection.findOne(query);
             res.send(perfume);
         });
+
+        // create items
+        app.post('/perfume', async (req, res) => {
+            const newPerfume = req.body;
+            const result = await perfumesCollection.insertOne(newPerfume);
+            res.send(result);
+        })
 
         // Update items 
         app.put('/perfume/:id', async (req, res) => {
