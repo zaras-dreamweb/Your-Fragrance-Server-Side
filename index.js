@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const { send, get } = require('express/lib/response');
@@ -12,6 +13,25 @@ app.use(cors());
 app.use(express.json());
 
 
+// token varification
+function verifyToken(req, res, next) {
+    const headerToken = req.headers.authorization;
+    if (!headerToken) {
+        return res.status(401).send({ message: 'Unauthorized Access' });
+    }
+    const token = headerToken.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(403).send({ message: 'Forbidden Access' });
+        }
+        console.log('decoded', decoded);
+        req.decoded = decoded;
+        next();
+    })
+};
+
+
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7sjmt.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
@@ -19,6 +39,16 @@ async function run() {
     try {
         await client.connect();
         const perfumesCollection = client.db('perfume-11').collection('perfumes');
+
+
+
+        // jwt
+        app.post('/login', async (req, res) => {
+            const user = req.body;
+            const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' });
+            res.send({ accessToken });
+        });
+
 
         // load all data from database
         app.get('/perfumes', async (req, res) => {
@@ -36,20 +66,29 @@ async function run() {
             res.send(perfume);
         });
 
-        // create items & load Item
-        app.get('/perfume', async (req, res) => {
-            const email = req.query.email;
-            const query = { email: email };
-            const cursor = perfumesCollection.find(query);
-            const perfumes = await cursor.toArray();
-            res.send(perfumes);
-        })
-
+        // add item & load Item
         app.post('/perfume', async (req, res) => {
             const newPerfume = req.body;
             const result = await perfumesCollection.insertOne(newPerfume);
             res.send(result);
-        })
+        });
+
+        // My order Api
+        app.get('/perfume', verifyToken, async (req, res) => {
+            const decodedEmail = req.decoded.email;
+            const email = req.query.email;
+            if (decodedEmail === email) {
+                const query = { email: email };
+                const cursor = perfumesCollection.find(query);
+                const perfumes = await cursor.toArray();
+                res.send(perfumes);
+            }
+            else {
+                res.status(403).send({ message: 'Forbidden Access' });
+            }
+
+        });
+
 
         // Update items 
         app.put('/perfume/:id', async (req, res) => {
