@@ -3,7 +3,6 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const { send, get } = require('express/lib/response');
 const app = express();
 require('dotenv').config();
 
@@ -13,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 
-// token varification
+// token verification
 function verifyToken(req, res, next) {
     const headerToken = req.headers.authorization;
     if (!headerToken) {
@@ -136,16 +135,6 @@ async function run() {
     }
 }
 run().catch(console.dir);
-
-
-
-
-
-
-
-
-
-
 
 
 
