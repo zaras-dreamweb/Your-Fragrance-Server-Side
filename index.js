@@ -41,6 +41,43 @@ async function run() {
         const perfumesCollection = client.db('perfume-11').collection('perfumes');
 
 
+        // load all data 
+        app.get('/perfumes', async (req, res) => {
+            console.log('query', req.query);
+            const exactPage = parseInt(req.query.exactPage);
+            const size = parseInt(req.query.size);
+            const query = {};
+            const cursor = perfumesCollection.find(query);
+            let perfumes;
+            if (exactPage || size) {
+                perfumes = await cursor.skip(exactPage * size).limit(size).toArray();
+            }
+            else {
+                perfumes = await cursor.toArray();
+            }
+            res.send(perfumes);
+        });
+
+        // for pagination
+        app.get('/perfumesCountItem', async (req, res) => {
+            const count = await perfumesCollection.estimatedDocumentCount();
+            res.send({ count });
+        });
+
+        // load single data
+        app.get('/perfume/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const perfume = await perfumesCollection.findOne(query);
+            res.send(perfume);
+        });
+
+        // add item
+        app.post('/perfume', async (req, res) => {
+            const newPerfume = req.body;
+            const result = await perfumesCollection.insertOne(newPerfume);
+            res.send(result);
+        });
 
         // jwt
         app.post('/login', async (req, res) => {
@@ -49,31 +86,7 @@ async function run() {
             res.send({ accessToken });
         });
 
-
-        // load all data from database
-        app.get('/perfumes', async (req, res) => {
-            const query = {};
-            const cursor = perfumesCollection.find(query);
-            const perfumes = await cursor.toArray();
-            res.send(perfumes);
-        });
-
-        // load single data from database
-        app.get('/perfume/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const perfume = await perfumesCollection.findOne(query);
-            res.send(perfume);
-        });
-
-        // add item & load Item
-        app.post('/perfume', async (req, res) => {
-            const newPerfume = req.body;
-            const result = await perfumesCollection.insertOne(newPerfume);
-            res.send(result);
-        });
-
-        // My order Api
+        // My Item Api for different emails
         app.get('/perfume', verifyToken, async (req, res) => {
             const decodedEmail = req.decoded.email;
             const email = req.query.email;
@@ -88,6 +101,8 @@ async function run() {
             }
 
         });
+
+
 
 
         // Update items 
